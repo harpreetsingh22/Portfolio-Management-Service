@@ -84,6 +84,8 @@ Retrieves a list of trades based on the specified trade type and security ID. Th
 
 - `tradeType` (optional): The type of trade to filter by. Possible values are `buy` and `sell`.
 - `securityId` (optional): The ID of the security associated with the trade.
+- `page` (optional): The page number for pagination. If not provided, defaults to the first page.
+- `limit` (optional): The number of trades to return per page. If not provided, defaults to 10.
 
 ##### Success (200 OK)
 ```
