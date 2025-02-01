@@ -18,7 +18,7 @@ Creates a new trade transaction. This API supports both `buy` and `sell` trade t
 {
   "tradeType": "buy" | "sell",      // Type of trade (buy or sell)
   "securityId": "number",             // ID of the security being traded
-  "price": "number",                // Price per share
+  "price": "number",                // Price of total shares
   "quantity": "number"              // Number of shares to trade
 }
 ```
