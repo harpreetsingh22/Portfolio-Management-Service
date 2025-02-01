@@ -22,7 +22,7 @@ export const getTradeById = async (req, res) => {
 
     const { id } = req.params;
     const trade = await TradeService.getTradeById({ id, embed: '[security]' });
-    if(!trade){
+    if (!trade) {
       throw tradeNotFoundError(id);
     }
 
@@ -94,7 +94,7 @@ export const addTrade = async (req, res) => {
         // Update the portfolio for a BUY trade
         const { averageBuyPrice, shares: portfolioShares } = portfolio;
         const updatedShares = portfolioShares + quantity;
-        const totalPrice = averageBuyPrice * portfolioShares + price * quantity;
+        const totalPrice = averageBuyPrice * portfolioShares + price;
         const newAverageBuyPrice = totalPrice / updatedShares;
 
         // Update portfolio in the database
@@ -130,19 +130,21 @@ export const addTrade = async (req, res) => {
       const { shares: portfolioShares } = portfolio;
       const updatedShares = portfolioShares - quantity;
 
-      // Ensure the new quantity doesn't go below 0
-      if (updatedShares < 0) {
-        throw insufficientQuantityError();
+      if (updatedShares === 0) {
+        // If shares become 0, delete the portfolio entry
+        await PortfolioService.deleteById({
+          id: portfolio.id,
+          txn
+        });
+      } else {
+        // Otherwise, just update the portfolio shares
+        await PortfolioService.update({
+          id: portfolio.id,
+          data: { shares: updatedShares },
+          txn
+        });
       }
 
-      // Update portfolio shares
-      await PortfolioService.update({
-        id: portfolio.id,
-        data: { shares: updatedShares },
-        txn
-      });
-
-      // Record the SELL trade
       const trade = {
         tradeType: constants.tradeType.sell,
         securityId,
@@ -152,6 +154,7 @@ export const addTrade = async (req, res) => {
 
       const createdTrade = await TradeService.create({ data: trade, txn });
       tradeId = createdTrade.id;
+
     }
 
     // Commit the transaction if all operations succeed
@@ -207,7 +210,7 @@ export const updateTrade = async (req, res) => {
     if (tradeType === constants.tradeType.buy) {
       const { averageBuyPrice, shares: portfolioShares } = portfolio;
       const updatedShares = portfolioShares - oldQuantity + quantity;
-      const totalPrice = averageBuyPrice * portfolioShares - oldPrice * oldQuantity + price * quantity;
+      const totalPrice = averageBuyPrice * portfolioShares - oldPrice + price;
       const newAverageBuyPrice = updatedShares > 0 ? totalPrice / updatedShares : 0;
 
       if (updatedShares === 0) {
@@ -269,7 +272,7 @@ export const deleteTrade = async (req, res) => {
     if (tradeType === constants.tradeType.buy) {
       const { averageBuyPrice, shares: portfolioShares } = portfolio;
       const updatedShares = portfolioShares - oldQuantity;
-      const totalPrice = averageBuyPrice * portfolioShares - oldPrice * oldQuantity;
+      const totalPrice = averageBuyPrice * portfolioShares - oldPrice ;
       const newAverageBuyPrice = updatedShares > 0 ? totalPrice / updatedShares : 0;
 
       if (updatedShares === 0) {
