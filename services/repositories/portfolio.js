@@ -54,4 +54,12 @@ export class PortfolioRepository {
       throw handleError(error);
     }
   }
+
+  static async deleteById({ id, txn = null }) {
+    try {
+        await Portfolio.query(txn).deleteById(id);
+    } catch (error) {
+        throw handleError(error);
+    }
+}
 }

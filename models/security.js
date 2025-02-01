@@ -1,6 +1,7 @@
 import { Model } from 'objection';
 import Joi from 'joi';
 import Constants from '../constants/index.js';
+import knexInstance from '../knexfile.js';
 
 class Security extends Model {
     static get tableName() {
@@ -22,5 +23,6 @@ class Security extends Model {
     }
 }
 
+Model.knex(knexInstance);
 export default Security;
 

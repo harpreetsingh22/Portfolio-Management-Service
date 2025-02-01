@@ -30,3 +30,8 @@ export const securityNotFoundError = () => Boom.notFound(JSON.stringify({
     error_code: 'PortfolioNotFoundError',
     error_description: 'Portfolio not found for the given security. You cannot sell this security.',
 }));
+
+export const tradeNotFoundError = (id) => Boom.notFound(JSON.stringify({
+    error_code: 'tradeNotFoundError',
+    error_description: `No trade found with the given id = ${id}`,
+}));

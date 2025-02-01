@@ -38,8 +38,6 @@ class Portfolio extends Model {
     }
 }
 
-
-
 Model.knex(knexInstance);
 export default Portfolio;
 

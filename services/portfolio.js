@@ -17,5 +17,9 @@ export class PortfolioService {
     return await PortfolioRepository.update({ id, data, txn });
   }
 
+  static async deleteById({ id, txn }) {
+    return await PortfolioRepository.deleteById({id, txn });
+  }
+
 }
 

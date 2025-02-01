@@ -10,14 +10,4 @@ export const dbConfig = {
     port: process.env.DB_PORT,
 };
 
-export const email = {
-    sendGridApiKey: process.env.SEND_GRID_KEY,
-    from: process.env.SENDGRID_FROM_EMAIL,
-};
-
-export const jwtConfig = {
-    secret: process.env.JWT_SECRET,
-    expiresIn: process.env.JWT_EXPIRATION
-}
-
 export const port = process.env.PORT;

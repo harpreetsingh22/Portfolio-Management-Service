@@ -2,6 +2,7 @@ import { Model } from 'objection';
 import Security from './security.js';
 import Joi from 'joi';
 import Constants from '../constants/index.js';
+import knexInstance from '../knexfile.js';
 
 class Trade extends Model {
     static get tableName() {
@@ -37,6 +38,6 @@ class Trade extends Model {
         };
     }
 }
-
+Model.knex(knexInstance);
 export default Trade;
 
