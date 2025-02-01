@@ -197,9 +197,6 @@ export const updateTrade = async (req, res) => {
 
     // Fetch portfolio linked to the security
     const [portfolio] = await PortfolioService.findByFields({ filters: { securityId } });
-    if (!portfolio) {
-      throw portfolioNotFoundError();
-    }
 
     const db = knex(knexConfig);
     txn = await db.transaction();
@@ -208,27 +205,37 @@ export const updateTrade = async (req, res) => {
     quantity = quantity || oldQuantity;
 
     if (tradeType === constants.tradeType.buy) {
+      if (!portfolio) {
+        throw portfolioNotFoundError();
+      }
+
       const { averageBuyPrice, shares: portfolioShares } = portfolio;
       const updatedShares = portfolioShares - oldQuantity + quantity;
       const totalPrice = averageBuyPrice * portfolioShares - oldPrice + price;
       const newAverageBuyPrice = updatedShares > 0 ? totalPrice / updatedShares : 0;
 
-      if (updatedShares === 0) {
-        await PortfolioService.delete({ id: portfolio.id, txn });
-      } else {
-        await PortfolioService.update({
-          id: portfolio.id,
-          data: { averageBuyPrice: newAverageBuyPrice, shares: updatedShares },
-          txn,
-        });
-      }
+      await PortfolioService.update({
+        id: portfolio.id,
+        data: { averageBuyPrice: newAverageBuyPrice, shares: updatedShares },
+        txn,
+      });
+
     } else if (tradeType === constants.tradeType.sell) {
-      const updatedShares = portfolio.shares + oldQuantity - quantity;
+      const updatedShares = (portfolio ? portfolio.shares : 0) + oldQuantity - quantity;
+
       if (updatedShares < 0) {
         throw insufficientQuantityError();
       }
 
-      if (updatedShares === 0) {
+      if (!portfolio) {
+        // If portfolio was deleted and shares are now positive, recreate it
+        await PortfolioService.create({
+          securityId,
+          shares: updatedShares,
+          averageBuyPrice: oldPrice / oldQuantity, // Restore an approximate price
+          txn,
+        });
+      } else if (updatedShares === 0) {
         await PortfolioService.deleteById({ id: portfolio.id, txn });
       } else {
         await PortfolioService.update({
@@ -262,17 +269,18 @@ export const deleteTrade = async (req, res) => {
 
     const { tradeType, securityId, shares: oldQuantity, price: oldPrice } = existingTrade;
     const [portfolio] = await PortfolioService.findByFields({ filters: { securityId } });
-    if (!portfolio) {
-      throw portfolioNotFoundError();
-    }
 
     const db = knex(knexConfig);
     txn = await db.transaction();
 
     if (tradeType === constants.tradeType.buy) {
+      if (!portfolio) {
+        throw portfolioNotFoundError();
+      }
+
       const { averageBuyPrice, shares: portfolioShares } = portfolio;
       const updatedShares = portfolioShares - oldQuantity;
-      const totalPrice = averageBuyPrice * portfolioShares - oldPrice ;
+      const totalPrice = averageBuyPrice * portfolioShares - oldPrice;
       const newAverageBuyPrice = updatedShares > 0 ? totalPrice / updatedShares : 0;
 
       if (updatedShares === 0) {
@@ -285,16 +293,34 @@ export const deleteTrade = async (req, res) => {
         });
       }
     } else if (tradeType === constants.tradeType.sell) {
-      const updatedShares = portfolio.shares + oldQuantity;
-
-      if (updatedShares === 0) {
-        await PortfolioService.deleteById({ id: portfolio.id, txn });
-      } else {
-        await PortfolioService.update({
-          id: portfolio.id,
-          data: { shares: updatedShares },
+      if (!portfolio) {
+        // If there's no portfolio, recreate it since this trade deletion restores shares
+        await PortfolioService.create({
+          data: {
+            securityId,
+            shares: oldQuantity,
+            averageBuyPrice: oldPrice / oldQuantity, // Assuming old sell price
+          },
           txn,
         });
+      } else {
+        const updatedShares = portfolio.shares + oldQuantity;
+
+        if (portfolio.shares === 0) {
+          // Portfolio was previously removed due to sell, so re-create it
+          await PortfolioService.create({
+            securityId,
+            shares: updatedShares,
+            averageBuyPrice: oldPrice / oldQuantity, // Restore price assumption
+            txn,
+          });
+        } else {
+          await PortfolioService.update({
+            id: portfolio.id,
+            data: { shares: updatedShares },
+            txn,
+          });
+        }
       }
     }
 
@@ -306,5 +332,6 @@ export const deleteTrade = async (req, res) => {
     return handleError(err, res);
   }
 };
+
 
 

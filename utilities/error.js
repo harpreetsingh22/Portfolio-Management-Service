@@ -2,7 +2,6 @@ import Boom from '@hapi/boom';
 
 export const handleError = (err, res) => {
     if (Boom.isBoom(err)) {
-        console.log("err", typeof err.output.payload.message);
         const { statusCode, payload } = err.output;
         if (payload && payload.message) {
             if (typeof payload.message === 'object') {
