@@ -8,8 +8,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(tradeRoutes);
-app.use(PortfolioRoutes);
+app.use('/api', tradeRoutes);
+app.use('/api', PortfolioRoutes);
 
 // Start the server
 const port = configPort || 3000;
